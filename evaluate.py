@@ -137,3 +137,26 @@ plt.title("Accuracy Comparison")
 plt.ylabel("Accuracy")
 plt.ylim(0, 1)
 plt.show()
+
+# Calculate and Plot Cumulative Accuracy for DeepFace Model
+cumulative_accuracies = []
+correct_predictions = 0
+
+for i in range(len(true_labels)):
+    # Update correct predictions count
+    if true_labels[i] == predicted_labels_deepface[i]:
+        correct_predictions += 1
+    # Calculate cumulative accuracy
+    cumulative_accuracies.append(correct_predictions / (i + 1))
+
+# Plot the Line Graph
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, len(true_labels) + 1), cumulative_accuracies, label='DeepFace Cumulative Accuracy', color='blue', linewidth=2)
+plt.axhline(y=accuracy_deepface, color='red', linestyle='--', label=f'Final Accuracy: {accuracy_deepface:.2f}')
+plt.title("DeepFace Model Performance Over Test Set")
+plt.xlabel("Number of Test Samples")
+plt.ylabel("Cumulative Accuracy")
+plt.legend()
+plt.grid(True)
+plt.show()
+
