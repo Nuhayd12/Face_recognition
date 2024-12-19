@@ -1,5 +1,8 @@
-import cv2
 import os
+import cv2
+import pickle
+import numpy as np
+from sklearn.neighbors import KNeighborsClassifier
 from deepface import DeepFace
 
 # Initialize video capture and face detection
@@ -17,11 +20,24 @@ if not os.path.exists(person_dir):
     os.makedirs(person_dir)
 
 i = 0  # Counter for saved images
+face_embeddings = []  # To store embeddings for KNN and DeepFace
+face_labels = []  # To store corresponding labels
 
 def preprocess_face(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # Convert to grayscale
     equalized = cv2.equalizeHist(gray)  # Apply histogram equalization
     return equalized
+
+def extract_embedding(image_path):
+    """
+    Extract facial embedding using DeepFace.
+    """
+    try:
+        embedding = DeepFace.represent(img_path=image_path, model_name="Facenet")
+        return np.array(embedding[0]["embedding"])
+    except Exception as e:
+        print(f"Error extracting embedding: {e}")
+        return None
 
 while True:
     ret, frame = video.read()
@@ -43,6 +59,12 @@ while True:
             face_path = os.path.join(person_dir, f"face_{i//10}.jpg")
             cv2.imwrite(face_path, resized_face)
             print(f"Saved {face_path}")
+
+            # Extract embedding and store it
+            embedding = extract_embedding(face_path)
+            if embedding is not None:
+                face_embeddings.append(embedding)
+                face_labels.append(name)
         
         i += 1
 
@@ -58,3 +80,23 @@ while True:
 print("Data collection completed!")
 video.release()
 cv2.destroyAllWindows()
+
+# Train KNN Model
+print("Training KNN model...")
+face_embeddings = np.array(face_embeddings)
+face_labels = np.array(face_labels)
+
+knn_model = KNeighborsClassifier(n_neighbors=5, metric="euclidean")
+knn_model.fit(face_embeddings, face_labels)
+
+# Save KNN model and labels
+if not os.path.exists("data"):
+    os.makedirs("data")
+
+with open("data/knn_model.pkl", "wb") as f:
+    pickle.dump(knn_model, f)
+
+with open("data/names.pkl", "wb") as f:
+    pickle.dump(list(set(face_labels)), f)
+
+print("KNN model trained and saved!")
